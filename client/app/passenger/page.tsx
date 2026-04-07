@@ -163,6 +163,15 @@ export default function PassengerPage() {
 
   const COMPONENT_ALL_BUSES = [...ALL_MAP_BUSES, ...dbBuses];
 
+  // Notify when new live buses appear
+  const prevDbCountRef = useRef(0);
+  useEffect(() => {
+    if (dbBuses.length > prevDbCountRef.current && prevDbCountRef.current > 0) {
+      toast.success(`New bus detected! ${dbBuses.length} live bus(es) on network.`);
+    }
+    prevDbCountRef.current = dbBuses.length;
+  }, [dbBuses.length]);
+
   // Close suggestions when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -279,20 +288,53 @@ export default function PassengerPage() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Top Nav */}
       <nav className="border-b border-border bg-card/80 backdrop-blur-sm z-40 flex-shrink-0">
-        <div className="px-4 py-3 min-h-[4.5rem] flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
-          <Link href="/login" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-accent-foreground" />
-            </div>
-            <span className="font-bold text-foreground hidden sm:block">Thadam</span>
-          </Link>
+        <div className="px-3 sm:px-4 pt-2 pb-1 sm:py-3">
+          {/* Row 1: Logo + Action Buttons */}
+          <div className="flex items-center justify-between gap-2 mb-2 sm:mb-0">
+            <Link href="/login" className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-accent flex items-center justify-center">
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
+              </div>
+              <span className="font-bold text-sm sm:text-base text-foreground">Thadam</span>
+            </Link>
 
-          {/* From / To Search Bar */}
-          <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 max-w-2xl min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Near Me */}
+              <Button onClick={handleShowNearMe} variant="outline" size="sm"
+                className="h-8 px-2 sm:px-3 gap-1 border-blue-500/50 text-blue-500 hover:bg-blue-500/10 text-xs">
+                <LocateFixed className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Near Me</span>
+              </Button>
+              {/* Find Bus */}
+              <Button onClick={() => setShowFinder(true)} variant="outline" size="sm"
+                className="h-8 px-2 sm:px-3 gap-1 border-accent/50 text-accent hover:bg-accent/10 text-xs">
+                <QrCode className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Find Bus</span>
+              </Button>
+              {/* Tickets */}
+              <Button onClick={() => setShowMyTickets(true)} variant="outline" size="sm"
+                className="h-8 px-2 sm:px-3 gap-1 border-green-500/50 text-green-600 hover:bg-green-500/10 text-xs relative">
+                <Ticket className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tickets</span>
+                {myTickets.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {myTickets.length}
+                  </span>
+                )}
+              </Button>
+              {/* Logout */}
+              <Button onClick={handleLogout} variant="ghost" size="sm"
+                className="h-8 px-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10" title="Log Out">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Row 2: Search Bar — full width */}
+          <form onSubmit={handleSearch} className="flex items-center gap-2">
             <div ref={searchBarRef} className="flex-1 relative min-w-0">
               <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-1.5 border border-border">
                 <div className="flex flex-col gap-1 flex-1">
-                  {/* FROM input */}
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
                     <input
@@ -300,12 +342,11 @@ export default function PassengerPage() {
                       onChange={(e) => { setFromQuery(e.target.value); setFrom(e.target.value); }}
                       onFocus={() => { setActiveField('from'); setFromQuery(from); }}
                       placeholder="From — your location"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                      className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none"
                     />
                     {fromLoading && activeField === 'from' && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground flex-shrink-0" />}
                   </div>
                   <div className="h-px bg-border mx-4" />
-                  {/* TO input */}
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3 h-3 text-green-500 flex-shrink-0" />
                     <input
@@ -313,7 +354,7 @@ export default function PassengerPage() {
                       onChange={(e) => { setToQuery(e.target.value); setTo(e.target.value); }}
                       onFocus={() => { setActiveField('to'); setToQuery(to); }}
                       placeholder="To — destination"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                      className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none"
                     />
                     {toLoading && activeField === 'to' && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground flex-shrink-0" />}
                   </div>
@@ -327,18 +368,15 @@ export default function PassengerPage() {
 
               {/* FROM suggestions dropdown */}
               {activeField === 'from' && fromSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
                   {fromSuggestions.map((s) => (
-                    <button
-                      key={s.place_id}
-                      type="button"
+                    <button key={s.place_id} type="button"
                       onMouseDown={() => pickSuggestion('from', shortName(s.display_name))}
-                      className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left"
-                    >
+                      className="w-full flex items-start gap-3 px-3 py-2 hover:bg-muted transition-colors text-left">
                       <MapPin className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-sm text-foreground font-medium truncate">{shortName(s.display_name)}</p>
-                        <p className="text-xs text-muted-foreground truncate">{s.display_name.split(',').slice(2, 4).join(',').trim()}</p>
+                        <p className="text-xs sm:text-sm text-foreground font-medium truncate">{shortName(s.display_name)}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{s.display_name.split(',').slice(2, 4).join(',').trim()}</p>
                       </div>
                     </button>
                   ))}
@@ -347,18 +385,15 @@ export default function PassengerPage() {
 
               {/* TO suggestions dropdown */}
               {activeField === 'to' && toSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
                   {toSuggestions.map((s) => (
-                    <button
-                      key={s.place_id}
-                      type="button"
+                    <button key={s.place_id} type="button"
                       onMouseDown={() => pickSuggestion('to', shortName(s.display_name))}
-                      className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left"
-                    >
+                      className="w-full flex items-start gap-3 px-3 py-2 hover:bg-muted transition-colors text-left">
                       <MapPin className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-sm text-foreground font-medium truncate">{shortName(s.display_name)}</p>
-                        <p className="text-xs text-muted-foreground truncate">{s.display_name.split(',').slice(2, 4).join(',').trim()}</p>
+                        <p className="text-xs sm:text-sm text-foreground font-medium truncate">{shortName(s.display_name)}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{s.display_name.split(',').slice(2, 4).join(',').trim()}</p>
                       </div>
                     </button>
                   ))}
@@ -369,54 +404,6 @@ export default function PassengerPage() {
               <Search className="w-4 h-4" />
             </Button>
           </form>
-
-          {/* Near Me Button */}
-          <Button
-            onClick={handleShowNearMe}
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0 gap-1.5 border-blue-500/50 text-blue-500 hover:bg-blue-500/10 whitespace-nowrap flex"
-          >
-            <LocateFixed className="w-4 h-4" />
-            <span className="hidden sm:block">Near Me</span>
-          </Button>
-
-          {/* Bus Finder Button — always visible */}
-          <Button
-            onClick={() => setShowFinder(true)}
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0 gap-1.5 border-accent/50 text-accent hover:bg-accent/10 whitespace-nowrap flex"
-          >
-            <QrCode className="w-4 h-4" />
-            <span className="hidden sm:block">Find Bus</span>
-          </Button>
-
-          {/* My Tickets Button */}
-          <Button
-            onClick={() => setShowMyTickets(true)}
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0 gap-1.5 border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10 whitespace-nowrap relative"
-          >
-            <Ticket className="w-4 h-4" />
-            <span className="hidden sm:block">Tickets</span>
-            {myTickets.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-green-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {myTickets.length}
-              </span>
-            )}
-          </Button>
-
-          <Button
-            onClick={handleLogout}
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 px-2"
-            title="Log Out"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
         </div>
       </nav>
 
@@ -484,6 +471,20 @@ export default function PassengerPage() {
                 <span className="text-sm font-bold text-foreground leading-tight">{carbonSaved.toFixed(1)} kg CO₂</span>
               </div>
             </div>
+          )}
+
+          {/* Live Bus Count Badge */}
+          {dbBuses.length > 0 && (
+            <button
+              onClick={handleShowNearMe}
+              className="absolute top-4 left-4 z-40 bg-card/90 backdrop-blur border border-accent/30 rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2 animate-in fade-in hover:bg-accent/10 transition-colors"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-xs font-bold text-foreground">{dbBuses.length} Live Bus{dbBuses.length > 1 ? 'es' : ''}</span>
+            </button>
           )}
 
           {/* Traffic Status Badge */}
